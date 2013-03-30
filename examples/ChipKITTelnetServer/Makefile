@@ -7,12 +7,12 @@ PIC32_CORE=$(MPIDE)/hardware/pic32/cores/pic32
 PIC32_VARIANT=$(MPIDE)/hardware/pic32/variants/Max32
 LDSCRIPT=$(PIC32_CORE)/chipKIT-MAX32-application-32MX795F512L.ld
 
-C_FILE=AnalogReadSerial.cpp
+C_FILE=ChipKITTelnetServer.cpp
 
 CFLAGS=-O0 -c -mno-smart-io -w -fno-exceptions -ffunction-sections -fdata-sections \
 			 -g -mdebugger -Wcast-align -fno-short-double -mprocessor=$(CPUTYPE) \
 			 -DF_CPU=80000000L -DARDUINO=23 -D_BOARD_MEGA_ -DMPIDEVER=0x01000202 \
-			 -DMPIDE=23 -I$(PIC32_CORE) -I$(PIC32_VARIANT) -I.
+			 -DMPIDE=23 -I$(PIC32_CORE) -I$(PIC32_VARIANT) -I$(ETHERNETLIB)
 
 LDFLAGS=-Os -Wl,--gc-sections -mdebugger -mprocessor=$(CPUTYPE)
 
@@ -27,14 +27,16 @@ AVRDUDE=$(AVRTOOLS_PREFIX)/bin/avrdude
 AVRDUDECONF=$(MPIDE)/hardware/tools/avrdude.conf
 AVRDUDEFLAGS=-C$(AVRDUDECONF) -c stk500v2 -p pic32 -P $(SERIAL_PORT) -b 115200 -v -U
 
+ETHERNETLIB=/home/lluis/sketchbook/libraries/chipKITEthernet
+
 burn: hex
 	$(AVRDUDE) $(AVRDUDEFLAGS) flash:w:build/$(C_FILE).hex:i
 
 build/$(C_FILE).o: $(C_FILE)
-	mkdir -p build
 	$(CC) $(CFLAGS) $(C_FILE) -o build/$(C_FILE).o
 
-build/core.a:
+build/core.a: $(PIC32_CORE)
+	mkdir -p build
 	$(CC) $(CFLAGS) $(PIC32_CORE)/crtn.S -o build/crtn.S.o
 	$(CC) $(CFLAGS) $(PIC32_CORE)/cpp-startup.S -o build/cpp-startup.S.o
 	$(CC) $(CFLAGS) $(PIC32_CORE)/crti.S -o build/crti.S.o
@@ -77,9 +79,17 @@ build/core.a:
 	$(AR) rcs build/core.a build/WString.cpp.o
 	$(AR) rcs build/core.a build/WMath.cpp.o
 
-link: build/core.a build/$(C_FILE).o
+build/ethernet.a: $(ETHERNETLIB)
+	mkdir -p build/ethernet
+	cp -r $(ETHERNETLIB)/* build/ethernet
+	cd build/ethernet && $(CC) $(CFLAGS) -I./utility utility/*.c
+	cd build/ethernet && $(CXX) $(CFLAGS) -I./utility *.cpp
+	$(AR) rcs build/ethernet.a build/ethernet/*.o
+	
+
+link: build/core.a build/ethernet.a build/$(C_FILE).o
 	$(LD) $(LDFLAGS) -o build/$(C_FILE).elf build/$(C_FILE).o build/core.a \
-		-L./build -lm -T $(LDSCRIPT)
+		build/ethernet.a -L./build -lm -T $(LDSCRIPT)
 
 hex: link
 	$(OBJCPY) -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load \
