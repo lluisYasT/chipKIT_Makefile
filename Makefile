@@ -12,7 +12,7 @@ C_FILE=AnalogReadSerial.cpp
 CFLAGS=-O0 -c -mno-smart-io -w -fno-exceptions -ffunction-sections -fdata-sections \
 			 -g -mdebugger -Wcast-align -fno-short-double -mprocessor=$(CPUTYPE) \
 			 -DF_CPU=80000000L -DARDUINO=23 -D_BOARD_MEGA_ -DMPIDEVER=0x01000202 \
-			 -DMPIDE=23 -I$(PIC32_CORE) -I$(PIC32_VARIANT)
+			 -DMPIDE=23 -I$(PIC32_CORE) -I$(PIC32_VARIANT) -I.
 
 LDFLAGS=-Os -Wl,--gc-sections -mdebugger -mprocessor=$(CPUTYPE)
 
@@ -30,7 +30,7 @@ AVRDUDEFLAGS=-C$(AVRDUDECONF) -c stk500v2 -p pic32 -P $(SERIAL_PORT) -b 115200 -
 all:build/$(C_FILE).o build/core.a link hex burn
 build: build/$(C_FILE).o build/core.a
 
-build/$(C_FILE).o:
+build/$(C_FILE).o: $(C_FILE)
 	mkdir -p build
 	$(CC) $(CFLAGS) $(C_FILE) -o build/$(C_FILE).o
 
@@ -44,7 +44,8 @@ build/core.a:
 	$(CC) $(CFLAGS) $(PIC32_CORE)/wiring_digital.c -o build/wiring_digital.c.o
 	$(CC) $(CFLAGS) $(PIC32_CORE)/WInterrupts.c -o build/WInterrupts.c.o
 	$(CC) $(CFLAGS) $(PIC32_CORE)/wiring_pulse.c -o build/wiring_pulse.c.o
-	$(CC) $(CFLAGS) $(PIC32_CORE)/HardwareSerial_cdcacm.c -o build/HardwareSerial_cdcacm.c.o
+	$(CC) $(CFLAGS) $(PIC32_CORE)/HardwareSerial_cdcacm.c -o \
+		build/HardwareSerial_cdcacm.c.o
 	$(CC) $(CFLAGS) $(PIC32_CORE)/wiring.c -o build/wiring.c.o
 	$(CC) $(CFLAGS) $(PIC32_CORE)/exceptions.c -o build/exceptions.c.o
 	$(CC) $(CFLAGS) $(PIC32_CORE)/pins_arduino.c -o build/pins_arduino.c.o
@@ -76,10 +77,11 @@ build/core.a:
 	$(AR) rcs build/core.a build/WString.cpp.o
 	$(AR) rcs build/core.a build/WMath.cpp.o
 
-link:
-	$(LD) $(LDFLAGS) -o build/$(C_FILE).elf build/$(C_FILE).o build/core.a -L./build -lm -T $(LDSCRIPT)
+link: build/core.a build/$(C_FILE).o
+	$(LD) $(LDFLAGS) -o build/$(C_FILE).elf build/$(C_FILE).o build/core.a \
+		-L./build -lm -T $(LDSCRIPT)
 
-hex:
+hex: build/$(C_FILE).elf
 	$(OBJCPY) -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load \
 		--no-change-warnings --change-section-lma .eeprom=0 build/$(C_FILE).elf \
 		build/$(C_FILE).eep
