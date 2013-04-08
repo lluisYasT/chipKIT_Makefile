@@ -77,7 +77,7 @@ build/core.a:
 	$(AR) rcs build/core.a build/WString.cpp.o
 	$(AR) rcs build/core.a build/WMath.cpp.o
 
-link: build/core.a build/$(C_FILE).o
+link: build/$(C_FILE).o build/core.a 
 	$(LD) $(LDFLAGS) -o build/$(C_FILE).elf build/$(C_FILE).o build/core.a \
 		-L./build -lm -T $(LDSCRIPT)
 
