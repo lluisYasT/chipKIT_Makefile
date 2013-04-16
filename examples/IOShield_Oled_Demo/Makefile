@@ -27,7 +27,7 @@ AVRDUDE=$(AVRTOOLS_PREFIX)/bin/avrdude
 AVRDUDECONF=$(MPIDE)/hardware/tools/avrdude.conf
 AVRDUDEFLAGS=-C$(AVRDUDECONF) -c stk500v2 -p pic32 -P $(SERIAL_PORT) -b 115200 -v -U
 
-IOSHIELDLIB=/home/lluis/sketchbook/libraries/IOShieldOled
+IOSHIELDLIB=$(HOME)/sketchbook/libraries/IOShieldOled
 
 
 burn: hex
