@@ -7,14 +7,14 @@ PIC32_CORE=$(MPIDE)/hardware/pic32/cores/pic32
 PIC32_VARIANT=$(MPIDE)/hardware/pic32/variants/Max32
 LDSCRIPT=$(PIC32_CORE)/chipKIT-MAX32-application-32MX795F512L.ld
 
-C_FILE=AnalogReadSerial.cpp
+C_FILE=Blink.cpp
 
-CFLAGS=-O0 -c -mno-smart-io -w -fno-exceptions -ffunction-sections -fdata-sections \
+CFLAGS=-O0 -mno-smart-io -w -fno-exceptions -ffunction-sections -fdata-sections \
 			 -g -mdebugger -Wcast-align -fno-short-double -mprocessor=$(CPUTYPE) \
 			 -DF_CPU=80000000L -DARDUINO=23 -D_BOARD_MEGA_ -DMPIDEVER=0x01000202 \
 			 -DMPIDE=23 -I$(PIC32_CORE) -I$(PIC32_VARIANT) -I.
 
-LDFLAGS=-Os -Wl,--gc-sections -mdebugger -mprocessor=$(CPUTYPE)
+LDFLAGS=-Os -Wl,--gc-sections,-Map,output.map -mdebugger -mprocessor=$(CPUTYPE)
 
 CC=$(TOOLCHAIN_PREFIX)/bin/pic32-gcc
 CXX=$(TOOLCHAIN_PREFIX)/bin/pic32-g++
@@ -32,13 +32,13 @@ burn: hex
 
 build/$(C_FILE).o: $(C_FILE)
 	mkdir -p build
-	$(CXX) $(CFLAGS) $(C_FILE) -o build/$(C_FILE).o
+	$(CXX) $(CFLAGS) -c $(C_FILE) -o build/$(C_FILE).o
 
 build/core.a:
 	mkdir -p build/core
 	cp $(PIC32_CORE)/{*.c,*.cpp,*.h} build/core
-	cd build/core && $(CC) $(CFLAGS) *.c
-	cd build/core && $(CXX) $(CFLAGS) *.cpp
+	cd build/core && $(CC) $(CFLAGS) -c *.c
+	cd build/core && $(CXX) $(CFLAGS) -c *.cpp
 	cd build/core && $(AR) rcs ../core.a *.o
 
 link: build/$(C_FILE).o build/core.a 
@@ -51,6 +51,11 @@ hex: link
 		build/$(C_FILE).eep
 	$(BIN2HEX) -a build/$(C_FILE).elf
 
+precompile: $(C_FILE)
+	$(CXX) $(CFLAGS) -E $(C_FILE) -o $(C_FILE).i
+
+compile: $(C_FILE)
+	$(CXX) $(CFLAGS) -S $(C_FILE) -o $(C_FILE).asm
 
 clean:
 	rm -rf build

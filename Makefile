@@ -32,7 +32,7 @@ burn: hex
 
 build/$(C_FILE).o: $(C_FILE)
 	mkdir -p build
-	$(CC) $(CFLAGS) $(C_FILE) -o build/$(C_FILE).o
+	$(CXX) $(CFLAGS) $(C_FILE) -o build/$(C_FILE).o
 
 build/core.a:
 	$(CC) $(CFLAGS) $(PIC32_CORE)/crtn.S -o build/crtn.S.o
